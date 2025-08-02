@@ -6,7 +6,7 @@ export default {
 		"./pages/**/*.{ts,tsx}",
 		"./components/**/*.{ts,tsx}",
 		"./app/**/*.{ts,tsx}",
-		"./src/**/*.{ts,tsx}",
+		"./src/**/*.{ts,tsx}"
 	],
 	prefix: "",
 	theme: {
@@ -61,7 +61,19 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// GTA 5 Color Palette
+				'gta-dark': '#1A1F2C',
+				'gta-yellow': '#FFD700',
+				'gta-cyan': '#00FFFF',
+				'gta-pink': '#FF149F',
+				'gta-blue': '#0066FF',
+				'gta-purple': '#9900FF',
+				'gta-green': '#00FF66',
+				'neon-cyan': '#00FFFF',
+				'neon-pink': '#FF1493',
+				'neon-yellow': '#FFD700',
+				'electric-blue': '#0099FF'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
