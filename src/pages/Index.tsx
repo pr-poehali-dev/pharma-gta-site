@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
 
 interface Drug {
@@ -44,7 +45,7 @@ const defaultDrugs: Drug[] = [
     narcotic: "Не содержит наркотических веществ",
     sideEffects: ["Головокружение", "Сонливость", "Тошнота"],
     tags: ["обезболивающее", "рецептурное", "нанотех"],
-    price: "₽2,500",
+    price: "$250",
     category: "Обезболивающие"
   },
   {
@@ -56,7 +57,7 @@ const defaultDrugs: Drug[] = [
     narcotic: "Содержит контролируемые вещества",
     sideEffects: ["Бессонница", "Повышенная активность", "Учащенное сердцебиение"],
     tags: ["ноотроп", "стимулятор", "концентрация"],
-    price: "₽3,200",
+    price: "$320",
     category: "Ноотропы"
   },
   {
@@ -68,7 +69,7 @@ const defaultDrugs: Drug[] = [
     narcotic: "Не содержит наркотических веществ",
     sideEffects: ["Слабость", "Повышение температуры", "Головная боль"],
     tags: ["противовирусное", "иммунитет", "рецептурное"],
-    price: "₽4,100",
+    price: "$410",
     category: "Противовирусные"
   }
 ];
@@ -87,9 +88,12 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [drugs, setDrugs] = useState<Drug[]>(defaultDrugs);
   const [categories, setCategories] = useState<string[]>(defaultCategories);
+  const [deletedDrugs, setDeletedDrugs] = useState<Drug[]>([]);
+  const [deletedCategories, setDeletedCategories] = useState<string[]>([]);
   const [editingDrug, setEditingDrug] = useState<Drug | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isTrashDialogOpen, setIsTrashDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
   
   const [formData, setFormData] = useState<DrugFormData>({
@@ -203,8 +207,23 @@ const Index = () => {
   };
 
   const deleteDrug = (id: number) => {
-    if (confirm("Удалить этот препарат?")) {
-      setDrugs(drugs.filter(drug => drug.id !== id));
+    if (confirm("Переместить препарат в корзину?")) {
+      const drugToDelete = drugs.find(drug => drug.id === id);
+      if (drugToDelete) {
+        setDeletedDrugs([...deletedDrugs, drugToDelete]);
+        setDrugs(drugs.filter(drug => drug.id !== id));
+      }
+    }
+  };
+
+  const restoreDrug = (drug: Drug) => {
+    setDrugs([...drugs, drug]);
+    setDeletedDrugs(deletedDrugs.filter(d => d.id !== drug.id));
+  };
+
+  const permanentlyDeleteDrug = (id: number) => {
+    if (confirm("Удалить препарат навсегда?")) {
+      setDeletedDrugs(deletedDrugs.filter(d => d.id !== id));
     }
   };
 
@@ -212,6 +231,28 @@ const Index = () => {
     if (newCategory && !categories.includes(newCategory)) {
       setCategories([...categories, newCategory]);
       setNewCategory("");
+    }
+  };
+
+  const deleteCategory = (category: string) => {
+    if (confirm("Переместить категорию в корзину?")) {
+      setDeletedCategories([...deletedCategories, category]);
+      setCategories(categories.filter(c => c !== category));
+      // Reset selected category if it was deleted
+      if (selectedCategory === category) {
+        setSelectedCategory("");
+      }
+    }
+  };
+
+  const restoreCategory = (category: string) => {
+    setCategories([...categories, category]);
+    setDeletedCategories(deletedCategories.filter(c => c !== category));
+  };
+
+  const permanentlyDeleteCategory = (category: string) => {
+    if (confirm("Удалить категорию навсегда?")) {
+      setDeletedCategories(deletedCategories.filter(c => c !== category));
     }
   };
 
@@ -274,7 +315,7 @@ const Index = () => {
           value={formData.price}
           onChange={(e) => setFormData({...formData, price: e.target.value})}
           className="gta-search mt-1"
-          placeholder="₽1,000"
+          placeholder="$100"
         />
       </div>
 
@@ -344,9 +385,76 @@ const Index = () => {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold text-gta-yellow neon-text">
-              PHARMA CORP
+              GTA 5 RP
             </h1>
             <div className="flex items-center space-x-4">
+              <Dialog open={isTrashDialogOpen} onOpenChange={setIsTrashDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-red-500/80 text-white hover:bg-red-500">
+                    <Icon name="Trash2" size={16} className="mr-2" />
+                    КОРЗИНА ({deletedDrugs.length + deletedCategories.length})
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-gta-dark border-gta-cyan/30 max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-gta-cyan neon-text">КОРЗИНА УДАЛЕННЫХ ЭЛЕМЕНТОВ</DialogTitle>
+                  </DialogHeader>
+                  <Tabs defaultValue="drugs" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="drugs">Препараты ({deletedDrugs.length})</TabsTrigger>
+                      <TabsTrigger value="categories">Категории ({deletedCategories.length})</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="drugs" className="space-y-4">
+                      {deletedDrugs.length === 0 ? (
+                        <p className="text-gray-400 text-center py-8">Корзина пуста</p>
+                      ) : (
+                        deletedDrugs.map(drug => (
+                          <div key={drug.id} className="gta-card p-4 flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              <img src={drug.image} alt={drug.name} className="w-16 h-16 object-cover rounded" />
+                              <div>
+                                <h3 className="text-gta-cyan font-bold">{drug.name}</h3>
+                                <p className="text-gray-400 text-sm">{drug.category} • {drug.price}</p>
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button onClick={() => restoreDrug(drug)} className="gta-button text-black hover:text-black">
+                                <Icon name="RotateCcw" size={16} />
+                              </Button>
+                              <Button onClick={() => permanentlyDeleteDrug(drug.id)} className="bg-red-500 text-white hover:bg-red-600">
+                                <Icon name="X" size={16} />
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </TabsContent>
+                    <TabsContent value="categories" className="space-y-4">
+                      {deletedCategories.length === 0 ? (
+                        <p className="text-gray-400 text-center py-8">Корзина пуста</p>
+                      ) : (
+                        deletedCategories.map(category => (
+                          <div key={category} className="gta-card p-4 flex items-center justify-between">
+                            <div>
+                              <h3 className="text-gta-cyan font-bold">{category}</h3>
+                              <p className="text-gray-400 text-sm">Категория товаров</p>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button onClick={() => restoreCategory(category)} className="gta-button text-black hover:text-black">
+                                <Icon name="RotateCcw" size={16} />
+                              </Button>
+                              <Button onClick={() => permanentlyDeleteCategory(category)} className="bg-red-500 text-white hover:bg-red-600">
+                                <Icon name="X" size={16} />
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </TabsContent>
+                  </Tabs>
+                </DialogContent>
+              </Dialog>
+              
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="gta-button text-black hover:text-black">
@@ -372,7 +480,7 @@ const Index = () => {
       <section className="py-16 px-6">
         <div className="container mx-auto text-center">
           <h2 className="text-5xl font-bold text-gta-cyan neon-text mb-4">
-            FUTURE PHARMACY
+            Los Santos Pharma
           </h2>
           <p className="text-xl text-gray-300 mb-8">
             Медицина будущего уже здесь
@@ -427,39 +535,26 @@ const Index = () => {
                 ВСЕ
               </Badge>
               {categories.map(category => (
-                <Badge
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  className={`cursor-pointer px-4 py-2 text-sm font-medium transition-all ${
-                    selectedCategory === category
-                      ? 'bg-gta-yellow text-black neon-glow'
-                      : 'border-gta-yellow/50 text-gta-yellow hover:bg-gta-yellow/20'
-                  }`}
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {category.toUpperCase()}
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div>
-            <h3 className="text-xl font-bold text-gta-pink mb-4">ТЕГИ:</h3>
-            <div className="flex flex-wrap gap-3">
-              {allTags.map(tag => (
-                <Badge
-                  key={tag}
-                  variant={selectedTags.includes(tag) ? "default" : "outline"}
-                  className={`cursor-pointer px-4 py-2 text-sm font-medium transition-all ${
-                    selectedTags.includes(tag)
-                      ? 'bg-gta-cyan text-black neon-glow'
-                      : 'border-gta-cyan/50 text-gta-cyan hover:bg-gta-cyan/20'
-                  }`}
-                  onClick={() => toggleTag(tag)}
-                >
-                  {tag.toUpperCase()}
-                </Badge>
+                <div key={category} className="flex items-center gap-1">
+                  <Badge
+                    variant={selectedCategory === category ? "default" : "outline"}
+                    className={`cursor-pointer px-4 py-2 text-sm font-medium transition-all ${
+                      selectedCategory === category
+                        ? 'bg-gta-yellow text-black neon-glow'
+                        : 'border-gta-yellow/50 text-gta-yellow hover:bg-gta-yellow/20'
+                    }`}
+                    onClick={() => setSelectedCategory(category)}
+                  >
+                    {category.toUpperCase()}
+                  </Badge>
+                  <Button
+                    size="sm"
+                    onClick={() => deleteCategory(category)}
+                    className="bg-red-500/50 text-white hover:bg-red-500 p-1 h-6 w-6"
+                  >
+                    <Icon name="X" size={12} />
+                  </Button>
+                </div>
               ))}
             </div>
           </div>
@@ -549,19 +644,6 @@ const Index = () => {
                     </div>
                   )}
 
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-2">
-                    {drug.tags.map(tag => (
-                      <Badge 
-                        key={tag} 
-                        variant="outline" 
-                        className="text-xs border-gta-cyan/30 text-gta-cyan"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-
                   {/* Action Button */}
                   <Button className="w-full gta-button text-black hover:text-black">
                     ЗАКАЗАТЬ
@@ -599,13 +681,8 @@ const Index = () => {
       <footer className="bg-black/50 border-t border-gta-cyan/30 py-8">
         <div className="container mx-auto px-6 text-center">
           <p className="text-gta-cyan">
-            © 2024 PHARMA CORP - Лекарства будущего
+            © 2024 Los Santos Pharma - Лекарства будущего
           </p>
-          <div className="flex justify-center space-x-6 mt-4">
-            <Icon name="Phone" className="text-gta-yellow" size={20} />
-            <Icon name="Mail" className="text-gta-yellow" size={20} />
-            <Icon name="MapPin" className="text-gta-yellow" size={20} />
-          </div>
         </div>
       </footer>
     </div>
